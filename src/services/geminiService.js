@@ -102,7 +102,7 @@ async function callGemini(apiKey, prompt, base64Image = null) {
   }
 
   // VERSION WATERMARK - Help user verify latest deployment
-  console.log("FitMorph Engine: BUILD_ID_9909 - Key Verification Active");
+  console.log("FitMorph Engine: BUILD_ID_9915 - Third Key Attempt Active");
   
   if (apiKey) {
     const masked = apiKey.substring(0, 7) + "..." + apiKey.slice(-4);
@@ -137,13 +137,14 @@ async function callGemini(apiKey, prompt, base64Image = null) {
         const msg = errorData.error?.message || "";
         
         // CATCHING THE "LIMIT 0" ERROR FROM LOGS
+        const masked = apiKey.substring(0, 7) + "..." + apiKey.slice(-4);
         if (response.status === 429 && msg.includes("limit: 0")) {
-          throw new Error(`CRITICAL: Your API Key has ZERO quota (limit: 0). This usually means the 'Generative Language API' is NOT enabled in your Google Cloud Project, or your account is restricted. Please create a NEW key at aistudio.google.com.`);
+          throw new Error(`CRITICAL: Your API Key (${masked}) has ZERO quota (limit: 0). This usually means the 'Generative Language API' is NOT enabled in your Google Cloud Project. Please check your Vercel settings and Redeploy.`);
         }
         
         // CATCHING THE "FORBIDDEN" ERROR FROM LOGS
         if (response.status === 403) {
-          throw new Error(`CRITICAL: API Key Forbidden (403). Ensure 'Generative Language API' is enabled in your Google Cloud console and your key is active.`);
+          throw new Error(`CRITICAL: API Key (${masked}) is Forbidden (403). Ensure 'Generative Language API' is enabled in your Google Cloud console and your key is active.`);
         }
 
         console.warn(`Model ${modelId} failed (${response.status}):`, msg);
