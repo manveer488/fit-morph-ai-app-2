@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>FitMorph AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
+    <!-- MediaPipe Pose Global Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  </head>
+  <body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex justify-center">
+    <script>
+      // Global error listener to catch module loading errors (hidden)
+      window.addEventListener('error', (event) => {
+        console.error('Captured Global Error:', event.error);
+        if (event.message.includes('SyntaxError') || event.message.includes('module')) {
+          const errDiv = document.createElement('div');
+          errDiv.style.cssText = 'position: fixed; top: 0; left: 0; background: #140f23; color: #6e3dff; padding: 20px; z-index: 10000; border-bottom: 2px solid #6e3dff; width: 100%;';
+          errDiv.innerHTML = `<strong>Application Loading Error:</strong><br><pre style="color: white; white-space: pre-wrap;">${event.message}</pre>`;
+          document.body.appendChild(errDiv);
+        }
+      });
+
+      // Initialize global state BEFORE modules load
+      window.fitmorphData = {
+        bodyScan: null,
+        mealPlan: null,
+        workoutPlan: null
+      };
+    </script>
+    <div id="root" class="relative flex h-screen max-h-[932px] w-full max-w-[430px] flex-col overflow-hidden shadow-2xl"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

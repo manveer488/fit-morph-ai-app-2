@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .glass-panel {
+    @apply bg-primary/5 backdrop-blur-md border border-white/10;
+  }
+  .neon-glow {
+    @apply shadow-[0_0_20px_rgba(0,242,255,0.4)];
+  }
+}
+
+body {
+  @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display;
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100%); opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.8; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+@keyframes rotateHologram {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes floatModel {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2%); }
+}
+
+@keyframes flickerGrid {
+  0%, 100% { opacity: 0.05; }
+  50% { opacity: 0.15; }
+  75% { opacity: 0.08; }
+}
+
+@keyframes particleDrift {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  20% { opacity: 0.6; }
+  80% { opacity: 0.6; }
+  100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
+}
+
+.animate-scan {
+  animation: scanLine 3s ease-in-out infinite;
+}
+
+.animate-rotate-hologram {
+  animation: rotateHologram 20s linear infinite;
+}
+
+.animate-float-model {
+  animation: floatModel 4s ease-in-out infinite;
+}
+
+.animate-flicker-grid {
+  animation: flickerGrid 2s steps(4) infinite;
+}
+
+.animate-particle {
+  animation: particleDrift 5s linear infinite;
+}
