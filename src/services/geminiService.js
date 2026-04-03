@@ -102,14 +102,13 @@ async function callGemini(apiKey, prompt, base64Image = null) {
   }
 
   // VERSION WATERMARK - Help user verify latest deployment
-  console.log("FitMorph Engine: BUILD_ID_9905 - Discovery Mode Active");
+  console.log("FitMorph Engine: BUILD_ID_9908 - Quota Diagnosis Active");
 
-  // Attempt pool based on user's request and stable standards
   const modelsToTry = [
     "gemini-1.5-flash",
     "gemini-1.5-flash-latest",
     "gemini-2.0-flash",
-    "gemini-2.0-flash-exp"
+    "gemini-1.5-pro"
   ];
 
   let lastError = null;
@@ -119,51 +118,44 @@ async function callGemini(apiKey, prompt, base64Image = null) {
       console.log(`Attempting AI Analysis with ${modelId}...`);
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
 
-      const parts = [{ text: prompt }];
-      if (base64Image) {
-        const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, "");
-        parts.push({
-          inline_data: {
-            mime_type: "image/jpeg",
-            data: cleanBase64
-          }
-        });
-      }
-
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts }] })
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...(base64Image ? [{ inline_data: { mime_type: "image/jpeg", data: base64Image.replace(/^data:image\/\w+;base64,/, "") } }] : [])] }] })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.warn(`Model ${modelId} failed:`, errorText);
-        lastError = new Error(errorText);
+        let errorData = {};
+        try { errorData = JSON.parse(errorText); } catch(e) {}
+        
+        const msg = errorData.error?.message || "";
+        
+        // CATCHING THE "LIMIT 0" ERROR FROM LOGS
+        if (response.status === 429 && msg.includes("limit: 0")) {
+          throw new Error(`CRITICAL: Your API Key has ZERO quota (limit: 0). This usually means the 'Generative Language API' is NOT enabled in your Google Cloud Project, or your account is restricted. Please create a NEW key at aistudio.google.com.`);
+        }
+        
+        // CATCHING THE "FORBIDDEN" ERROR FROM LOGS
+        if (response.status === 403) {
+          throw new Error(`CRITICAL: API Key Forbidden (403). Ensure 'Generative Language API' is enabled in your Google Cloud console and your key is active.`);
+        }
+
+        console.warn(`Model ${modelId} failed (${response.status}):`, msg);
+        lastError = new Error(msg || `API Error ${response.status}`);
         continue;
       }
 
       const data = await response.json();
       return processGeminiResponse(data);
     } catch (err) {
+      if (err.message.includes("CRITICAL")) throw err; // Don't loop if it's an account-level error
       console.warn(`Connection to ${modelId} failed:`, err);
       lastError = err;
     }
   }
 
-  // DISCOVERY PHASE: If all fail, let's find out what models ARE supported
-  try {
-    console.log("Discovery Phase: Attempting to list supported models...");
-    const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    if (listResponse.ok) {
-      const listData = await listResponse.json();
-      console.log("SUPPORTED MODELS FOR THIS API KEY:", listData.models?.map(m => m.name));
-    }
-  } catch (e) {
-    console.error("Discovery failed:", e);
-  }
-
-  throw new Error(`All models (including 1.5-flash and 2.0-flash) failed with 404 or support errors. Please check your console (F12) for the 'SUPPORTED MODELS' list to find the exact name.`);
+  throw lastError || new Error("Connection failed. Please check your API key and Vercel environment variables.");
 }
 
 function processGeminiResponse(data) {
