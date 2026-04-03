@@ -102,7 +102,7 @@ async function callGemini(apiKey, prompt, base64Image = null) {
   }
 
   // VERSION WATERMARK - Help user verify latest deployment
-  console.log("FitMorph Engine: BUILD_ID_9915 - Third Key Attempt Active");
+  console.log("FitMorph Engine: BUILD_ID_9920 - Advanced Quota Diagnosis Active");
   
   if (apiKey) {
     const masked = apiKey.substring(0, 7) + "..." + apiKey.slice(-4);
@@ -110,6 +110,7 @@ async function callGemini(apiKey, prompt, base64Image = null) {
   }
 
   const modelsToTry = [
+    "gemini-1.5-flash-8b",
     "gemini-1.5-flash",
     "gemini-1.5-flash-latest",
     "gemini-2.0-flash",
