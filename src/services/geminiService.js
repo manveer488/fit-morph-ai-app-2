@@ -102,31 +102,31 @@ async function callGemini(apiKey, prompt, base64Image = null) {
   }
 
   // VERSION WATERMARK - Help user verify latest deployment
-  console.log("FitMorph Engine: BUILD_ID_9920 - Advanced Quota Diagnosis Active");
+  console.log("FitMorph Engine: BUILD_ID_9930 - Header Auth & Fallback Active");
   
-  if (apiKey) {
-    const masked = apiKey.substring(0, 7) + "..." + apiKey.slice(-4);
-    console.log("Active API Key (Masked):", masked);
-  }
+  const masked = apiKey.substring(0, 7) + "..." + apiKey.slice(-4);
+  console.log("Active API Key (Masked):", masked);
 
-  const modelsToTry = [
-    "gemini-1.5-flash-8b",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-2.0-flash",
-    "gemini-1.5-pro"
+  // Pool of model versions and API endpoints
+  const configs = [
+    { model: "gemini-1.5-flash", ver: "v1beta" },
+    { model: "gemini-1.5-flash", ver: "v1" },
+    { model: "gemini-2.0-flash", ver: "v1beta" }
   ];
 
   let lastError = null;
 
-  for (const modelId of modelsToTry) {
+  for (const config of configs) {
     try {
-      console.log(`Attempting AI Analysis with ${modelId}...`);
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+      console.log(`Attempting AI Analysis with ${config.model} (${config.ver})...`);
+      const API_URL = `https://generativelanguage.googleapis.com/${config.ver}/models/${config.model}:generateContent`;
 
       const response = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey 
+        },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...(base64Image ? [{ inline_data: { mime_type: "image/jpeg", data: base64Image.replace(/^data:image\/\w+;base64,/, "") } }] : [])] }] })
       });
 
@@ -138,17 +138,16 @@ async function callGemini(apiKey, prompt, base64Image = null) {
         const msg = errorData.error?.message || "";
         
         // CATCHING THE "LIMIT 0" ERROR FROM LOGS
-        const masked = apiKey.substring(0, 7) + "..." + apiKey.slice(-4);
         if (response.status === 429 && msg.includes("limit: 0")) {
-          throw new Error(`CRITICAL: Your API Key (${masked}) has ZERO quota (limit: 0). This usually means the 'Generative Language API' is NOT enabled in your Google Cloud Project. Please check your Vercel settings and Redeploy.`);
+          throw new Error(`CRITICAL: Your API Key (${masked}) has ZERO quota (limit: 0).\n\nFIX: You MUST enable the 'Generative Language API' here: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com`);
         }
         
         // CATCHING THE "FORBIDDEN" ERROR FROM LOGS
         if (response.status === 403) {
-          throw new Error(`CRITICAL: API Key (${masked}) is Forbidden (403). Ensure 'Generative Language API' is enabled in your Google Cloud console and your key is active.`);
+          throw new Error(`CRITICAL: API Key (${masked}) is Forbidden (403).\n\nFIX: Enable the API here: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com`);
         }
 
-        console.warn(`Model ${modelId} failed (${response.status}):`, msg);
+        console.warn(`${config.model} failed (${response.status}):`, msg);
         lastError = new Error(msg || `API Error ${response.status}`);
         continue;
       }
@@ -156,13 +155,13 @@ async function callGemini(apiKey, prompt, base64Image = null) {
       const data = await response.json();
       return processGeminiResponse(data);
     } catch (err) {
-      if (err.message.includes("CRITICAL")) throw err; // Don't loop if it's an account-level error
-      console.warn(`Connection to ${modelId} failed:`, err);
+      if (err.message.includes("CRITICAL")) throw err;
+      console.warn(`Attempt failed:`, err);
       lastError = err;
     }
   }
 
-  throw lastError || new Error("Connection failed. Please check your API key and Vercel environment variables.");
+  throw lastError || new Error("Connection failed. Check your API key and re-deploy.");
 }
 
 function processGeminiResponse(data) {
